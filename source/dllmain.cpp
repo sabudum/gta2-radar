@@ -41,7 +41,7 @@ using namespace plugin;
 static config_file config(PLUGIN_PATH("GTA2Radar.ini"));
 static int EnableBuiltinArrows = config["EnableBuiltinArrows"].asInt(0);
 static float DynamicArrowsDistance = config["DynamicArrowsDistance"].asFloat(1.0);
-static int ToggleDefaultArrows = config["ToggleDefaultArrows"].asFloat(82);
+static int ToggleDefaultArrows = config["ToggleDefaultArrows"].asFloat(0x52);
 int BuiltinArrowsState = EnableBuiltinArrows;
 
 enum eEnableBuiltinArrows {
