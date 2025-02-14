@@ -41,6 +41,8 @@ using namespace plugin;
 static config_file config(PLUGIN_PATH("GTA2Radar.ini"));
 static int EnableBuiltinArrows = config["EnableBuiltinArrows"].asInt(0);
 static float DynamicArrowsDistance = config["DynamicArrowsDistance"].asFloat(1.0);
+static int ToggleDefaultArrows = config["ToggleDefaultArrows"].asFloat(82);
+int BuiltinArrowsState = EnableBuiltinArrows;
 
 enum eEnableBuiltinArrows {
     DISABLED,
@@ -97,6 +99,13 @@ static float cachedSin = 0.0f;
 static float cachedCos = 1.0f;
 static float radarRange = 1.0f;
 static CVector2D radarOrigin;
+
+//Keypress handling
+HWND hwnd = GetHWnd();
+WNDPROC wndProcOld = (WNDPROC)GetWindowLong(hwnd, GWL_WNDPROC);
+LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+byte Original4CA4D2[11]; // { 0x8d,0x8e,0x18,0x1f,0x00,0x00,0xe8,0xe3,0xdf,0xff,0xff };
+byte Original4C82D5[5]; // { 0xe8,0x76,0xed,0xff,0xff };
 
 class GTA2Radar {
 public:
@@ -602,6 +611,13 @@ public:
             RestoreStates();
         };     
 
+        //Save original memory to restore later
+        plugin::patch::GetRaw(0x4CA4D2, Original4CA4D2, 11);
+        plugin::patch::GetRaw(0x4C82D5, Original4C82D5, 5);
+
+        //Keypress handling
+        SetWindowLong(hwnd, GWL_WNDPROC, (LONG)WndProc);
+
         if (EnableBuiltinArrows == DISABLED)
         {
             plugin::patch::Nop(0x4CA4D2, 11);
@@ -612,3 +628,36 @@ public:
 
     };
 } gta2Radar;
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch (uMsg)
+    {
+    case WM_KEYDOWN:
+        if (wParam == ToggleDefaultArrows)
+        {
+            switch (BuiltinArrowsState)
+            {
+            case DISABLED:
+                //Show arrows
+                plugin::patch::SetRaw(0x4CA4D2, Original4CA4D2, 11);
+                BuiltinArrowsState = ENABLED;
+                break;
+            case ENABLED:
+                //Show dynamic arrows
+                plugin::patch::ReplaceFunctionCall(0x4C82D5, GTA2Radar::HandleDynamicArrows);
+                BuiltinArrowsState = DYNAMIC;
+                break;
+            case DYNAMIC:
+                //Hide arrows
+                plugin::patch::Nop(0x4CA4D2, 11);
+                //Remove call for dynamic arrows
+                plugin::patch::SetRaw(0x4C82D5, Original4C82D5, 5);
+                BuiltinArrowsState = DISABLED;
+                break;
+            }
+        }
+        break;
+    }
+    return CallWindowProc(wndProcOld, hwnd, uMsg, wParam, lParam);
+}
