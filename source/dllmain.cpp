@@ -1,20 +1,3 @@
-#define RADAR_SIZE_X (256.0f)
-#define RADAR_SIZE_Y (256.0f)
-
-#define RADAR_NUM_TILES (8)
-#define RADAR_TILE_SIZE (RADAR_SIZE_X / RADAR_NUM_TILES)
-
-#define RADAR_MIN_RANGE (14.0f)// og (7.8f)  - > 120.0f
-#define RADAR_MAX_RANGE (48.0f)// og (22.5f) - > 350.0f
-#define RADAR_MIN_SPEED (0.3f)
-#define RADAR_MAX_SPEED (0.9f)
-
-#define RADAR_LEFT (8.0f)
-#define RADAR_BOTTOM (8.0f)
-#define RADAR_WIDTH (82.0f) 
-#define RADAR_HEIGHT (82.0f)
-
-#define RADAR_BLIPS_SIZE (7.0f)
 
 #include "plugin.h"
 #include "common.h"
@@ -43,6 +26,24 @@ static int EnableBuiltinArrows = config["EnableBuiltinArrows"].asInt(0);
 static float DynamicArrowsDistance = config["DynamicArrowsDistance"].asFloat(1.0);
 static int ToggleDefaultArrows = config["ToggleDefaultArrows"].asFloat(0x52);
 int BuiltinArrowsState = EnableBuiltinArrows;
+
+static float RadarSizeX = config["RadarSizeX"].asFloat(250.0);
+static float RadarSizeY = config["RadarSizeY"].asFloat(250.0);
+
+static int RadarNumTiles = config["RadarNumTiles"].asInt(8);
+static float RadarTileSize = RadarSizeX / RadarNumTiles
+
+static float RadarMinRange = config["RadarMinRange"].asFloat(14.0);
+static float RadarMaxRange = config["RadarMaxRange"].asFloat(48.0);
+static float RadarMinSpeed = config["RadarMinSpeed"].asFloat(0.3);
+static float RadarMaxSpeed = config["RadarMaxSpeed"].asFloat(0.9);
+
+static float RadarLeft = config["RadarLeft"].asFloat(8.0);
+static float RadarBottom = config["RadarBottom"].asFloat(8.0);
+static float RadarWidth = config["RadarWidth"].asFloat(82.0);
+static float RadarHeight = config["RadarHeight"].asFloat(82.0);
+
+static float RadarBlipsSize = config["RadarBlipsSize"].asFloat(7.0);
 
 enum eEnableBuiltinArrows {
     DISABLED,
@@ -130,8 +131,8 @@ public:
         RenderStateSet(D3DRENDERSTATE_SRCBLEND, (void*)D3DBLEND_ZERO);
         RenderStateSet(D3DRENDERSTATE_DESTBLEND, (void*)D3DBLEND_ONE);
 
-        CRect rect(0.0f, 0.0f, SCREEN_SCALE_X(RADAR_WIDTH / 2), SCREEN_SCALE_Y(RADAR_HEIGHT));
-        rect.Translate(SCREEN_SCALE_X(RADAR_LEFT), SCREEN_SCALE_FROM_BOTTOM(RADAR_BOTTOM + RADAR_HEIGHT));
+        CRect rect(0.0f, 0.0f, SCREEN_SCALE_X(RadarWidth / 2), SCREEN_SCALE_Y(RadarHeight));
+        rect.Translate(SCREEN_SCALE_X(RadarLeft), SCREEN_SCALE_FROM_BOTTOM(RadarBotom + RadarHeight));
 
         rect.Grow(SCREEN_SCALE_X(4.0f), SCREEN_SCALE_X(4.0f), SCREEN_SCALE_Y(4.0f), SCREEN_SCALE_Y(4.0f));
 
@@ -161,7 +162,7 @@ public:
         CPlayerPed* playa = GetGame()->FindPlayerPed(0);
         CCar* car = playa->m_pPed->m_pCurrentCar;
 
-        radarRange = RADAR_MIN_RANGE + (playa->m_ViewCamera.m_vPosInterp.FromInt16().z * 2.0f);
+        radarRange = RadarMinRange + (playa->m_ViewCamera.m_vPosInterp.FromInt16().z * 2.0f);
         radarOrigin = playa->GetPed()->GetPosition2D().FromInt16();
         DrawRadarMap();
     }
@@ -169,8 +170,8 @@ public:
     static void DrawRadarMap() {
         DrawRadarMask();
 
-        int x = floor(radarOrigin.x / RADAR_TILE_SIZE);
-        int y = ceil(radarOrigin.y / RADAR_TILE_SIZE);
+        int x = floor(radarOrigin.x / RadarTileSize);
+        int y = ceil(radarOrigin.y / RadarTileSize);
 
         RenderStateSet(D3DRENDERSTATE_FOGENABLE, (void*)FALSE);
         RenderStateSet(D3DRENDERSTATE_SRCBLEND, (void*)D3DBLEND_SRCALPHA);
@@ -202,7 +203,7 @@ public:
         GetTextureCorners(x, y, worldPoly);
         ClipRadarTileCoords(x, y);
 
-        int index = x + RADAR_NUM_TILES * y;
+        int index = x + RadarNumTiles * y;
         LPDIRECT3DTEXTURE2 texture = radarSprites[index].m_pTexture;
 
         for (int i = 0; i < 4; i++)
@@ -226,31 +227,31 @@ public:
 
     static void GetTextureCorners(int x, int y, CVector2D* out) {
         // bottom left
-        out[0].x = RADAR_TILE_SIZE * (x);
-        out[0].y = RADAR_TILE_SIZE * (y + 1);
+        out[0].x = RadarTileSize * (x);
+        out[0].y = RadarTileSize * (y + 1);
 
         // bottom right
-        out[1].x = RADAR_TILE_SIZE * (x + 1);
-        out[1].y = RADAR_TILE_SIZE * (y + 1);
+        out[1].x = RadarTileSize * (x + 1);
+        out[1].y = RadarTileSize * (y + 1);
 
         // top right
-        out[2].x = RADAR_TILE_SIZE * (x + 1);
-        out[2].y = RADAR_TILE_SIZE * (y);
+        out[2].x = RadarTileSize * (x + 1);
+        out[2].y = RadarTileSize * (y);
 
         // top left
-        out[3].x = RADAR_TILE_SIZE * (x);
-        out[3].y = RADAR_TILE_SIZE * (y);
+        out[3].x = RadarTileSize * (x);
+        out[3].y = RadarTileSize * (y);
     }
 
     static void ClipRadarTileCoords(int& x, int& y) {
         if (x < 0)
             x = 0;
-        if (x > RADAR_NUM_TILES - 1)
-            x = RADAR_NUM_TILES - 1;
+        if (x > RadarNumTiles - 1)
+            x = RadarNumTiles - 1;
         if (y < 0)
             y = 0;
-        if (y > RADAR_NUM_TILES - 1)
-            y = RADAR_NUM_TILES - 1;
+        if (y > RadarNumTiles - 1)
+            y = RadarNumTiles - 1;
     }
 
     static int ClipPolyPlane(const CVector2D* in, int nin, CVector2D* out, CVector* plane) {
@@ -311,15 +312,15 @@ public:
     }
 
     static void TransformRealWorldToTexCoordSpace(CVector2D& out, const CVector2D& in, int x, int y) {
-        out.x = in.x - (x * RADAR_TILE_SIZE);
-        out.y = in.y - (y * RADAR_TILE_SIZE);
-        out.x /= RADAR_TILE_SIZE;
-        out.y /= RADAR_TILE_SIZE;
+        out.x = in.x - (x * RadarTileSize);
+        out.y = in.y - (y * RadarTileSize);
+        out.x /= RadarTileSize;
+        out.y /= RadarTileSize;
     }
 
     static void TransformRadarPointToScreenSpace(CVector2D& out, const CVector2D& in) {
-        out.x = (in.x + 1.0f) * 0.5f * SCREEN_SCALE_X(RADAR_WIDTH) + SCREEN_SCALE_X(RADAR_LEFT);
-        out.y = (in.y + 1.0f) * 0.5f * SCREEN_SCALE_Y(RADAR_HEIGHT) + SCREEN_SCALE_FROM_BOTTOM(RADAR_BOTTOM + RADAR_HEIGHT);
+        out.x = (in.x + 1.0f) * 0.5f * SCREEN_SCALE_X(RadarWidth) + SCREEN_SCALE_X(RadarLeft);
+        out.y = (in.y + 1.0f) * 0.5f * SCREEN_SCALE_Y(RadarHeight) + SCREEN_SCALE_FROM_BOTTOM(RadarBotom + RadarHeight);
     }
 
     static float LimitRadarPoint(CVector2D& pos) {
@@ -332,7 +333,7 @@ public:
     static void DrawRotatingRadarSprite(CSprite2d* sprite, float x, float y, float angle, int alpha) {
         CVector curPosn[4];
         const float correctedAngle = angle - M_PI / 4.f;
-        float scale = SCREEN_SCALE_Y(RADAR_BLIPS_SIZE);
+        float scale = SCREEN_SCALE_Y(RadarBlipsSize);
 
         for (unsigned int i = 0; i < 4; i++) {
             const float cornerAngle = i * (M_PI / 2) + correctedAngle;
@@ -344,7 +345,7 @@ public:
     }
 
     static void DrawBlip(CSprite2d* sprite, CVector2D out, CRGBA const& col) {
-        float scale = SCREEN_SCALE_Y(RADAR_BLIPS_SIZE);
+        float scale = SCREEN_SCALE_Y(RadarBlipsSize);
         sprite->Draw(CRect(out.x - scale, out.y - scale, out.x + scale, out.y + scale), col);
     }
 
@@ -367,7 +368,7 @@ public:
         LimitRadarPoint(in);
         TransformRadarPointToScreenSpace(out, in);
 
-        float scale = SCREEN_SCALE_X(RADAR_BLIPS_SIZE);
+        float scale = SCREEN_SCALE_X(RadarBlipsSize);
         hudSprites[SPRITE_RADAR_NORTH].Draw(CRect(out.x - scale, out.y - scale, out.x + scale, out.y + scale), CRGBA(255, 255, 255, 255));
     }
 
@@ -444,7 +445,7 @@ public:
 
                 switch (sprite) {
                 case SPRITE_BIGARROW:
-                    DrawLevel(out, level, SCREEN_SCALE_X(RADAR_BLIPS_SIZE), col);
+                    DrawLevel(out, level, SCREEN_SCALE_X(RadarBlipsSize), col);
                     break;
                 case SPRITE_GREENARROW:
                 case SPRITE_BLUEARROW:
@@ -598,9 +599,9 @@ public:
         plugin::Events::drawHudEvent += []() {
             GetStates();
             DrawMap();    
-            float x = SCREEN_SCALE_X(RADAR_LEFT);
-            float y = SCREEN_SCALE_FROM_BOTTOM(RADAR_BOTTOM + RADAR_HEIGHT);
-            CRect rect(x, y, SCREEN_SCALE_X(RADAR_WIDTH) + x, SCREEN_SCALE_Y(RADAR_HEIGHT) + y);
+            float x = SCREEN_SCALE_X(RadarLeft);
+            float y = SCREEN_SCALE_FROM_BOTTOM(RadarBotom + RadarHeight);
+            CRect rect(x, y, SCREEN_SCALE_X(RadarWidth) + x, SCREEN_SCALE_Y(RadarHeight) + y);
             rect.left -= SCREEN_SCALE_X(2.0f);
             rect.top -= SCREEN_SCALE_Y(2.0f);
             rect.right += SCREEN_SCALE_X(2.0f);
